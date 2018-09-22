@@ -4,6 +4,7 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.silentchaos512.gear.api.parts.ItemPartData;
+import net.silentchaos512.gear.api.parts.PartOrigins;
 import net.silentchaos512.gear.api.parts.PartTip;
 import net.silentchaos512.lib.item.IEnumItems;
 
@@ -26,7 +27,7 @@ public enum TipUpgrades implements IEnumItems<TipUpgrades, TipUpgrades.Item> {
 
     TipUpgrades() {
         this.item = new TipUpgrades.Item();
-        this.part = new PartTip();
+        this.part = new PartTip(PartOrigins.BUILTIN_CORE);
     }
 
     public String getPartName() {

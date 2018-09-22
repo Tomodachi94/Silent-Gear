@@ -24,6 +24,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.item.ICoreItem;
+import net.silentchaos512.gear.api.parts.PartOrigins;
 import net.silentchaos512.gear.api.parts.PartUpgrade;
 import net.silentchaos512.gear.init.ModItems;
 import net.silentchaos512.lib.item.IEnumItems;
@@ -44,7 +45,7 @@ public enum MiscUpgrades implements IEnumItems<MiscUpgrades, MiscUpgrades.Item> 
     MiscUpgrades(final Predicate<ICoreItem> canApplyTo) {
         this.item = new MiscUpgrades.Item();
 
-        this.part = new PartUpgrade() {
+        this.part = new PartUpgrade(PartOrigins.BUILTIN_CORE) {
             @Override
             public boolean isValidFor(@Nonnull ICoreItem gearItem) {
                 return canApplyTo.test(gearItem);
@@ -61,7 +62,7 @@ public enum MiscUpgrades implements IEnumItems<MiscUpgrades, MiscUpgrades.Item> 
     }
 
     private static boolean matchAny(ICoreItem item) {
-        return item != null;
+        return true;
     }
 
     @Nonnull

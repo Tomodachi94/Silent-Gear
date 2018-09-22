@@ -12,12 +12,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class PartMain extends ItemPart {
-    public PartMain() {
-        super(false);
+    public PartMain(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartMain(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.MAIN;
     }
 
     @Override

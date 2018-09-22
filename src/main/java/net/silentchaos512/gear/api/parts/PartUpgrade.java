@@ -26,12 +26,13 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class PartUpgrade extends ItemPart implements IUpgradePart {
-    public PartUpgrade() {
-        this(false);
+    public PartUpgrade(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartUpgrade(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.MISC_UPGRADE;
     }
 
     @Override

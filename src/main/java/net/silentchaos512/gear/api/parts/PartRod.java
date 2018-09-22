@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class PartRod extends ItemPart {
-    public PartRod() {
-        super(false);
+    public PartRod(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartRod(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.ROD;
     }
 
     @Override

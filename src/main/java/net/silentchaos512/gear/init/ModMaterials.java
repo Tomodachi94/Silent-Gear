@@ -40,16 +40,16 @@ public class ModMaterials implements IPhasedInitializer {
     public static void registerParts(RegistryEvent.Register<ItemPart> event) {
         IForgeRegistry<ItemPart> reg = event.getRegistry();
 
-        register(reg, new PartMain(), "main_wood");
-        register(reg, new PartMain(), "main_stone");
-        register(reg, new PartMain(), "main_flint");
-        register(reg, new PartMain(), "main_terracotta");
-        register(reg, new PartMain(), "main_netherrack");
-        register(reg, new PartMain(), "main_iron");
-        register(reg, new PartMain(), "main_gold");
-        register(reg, new PartMain(), "main_emerald");
-        register(reg, new PartMain(), "main_diamond");
-        register(reg, new PartMain(), "main_obsidian");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_wood");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_stone");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_flint");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_terracotta");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_netherrack");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_iron");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_gold");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_emerald");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_diamond");
+        register(reg, new PartMain(PartOrigins.BUILTIN_CORE), "main_obsidian");
 //        if (SilentGear.instance.isDevBuild()) register(reg, new PartMain(), "main_test");
 
         for (ToolRods rod : ToolRods.values())
@@ -59,11 +59,11 @@ public class ModMaterials implements IPhasedInitializer {
             register(reg, tip.getPart(), tip.getPartName());
 
         for (EnumDyeColor color : EnumDyeColor.values())
-            register(reg, new PartGrip(), "grip_wool_" + color.name().toLowerCase(Locale.ROOT));
-        register(reg, new PartGrip(), "grip_leather");
+            register(reg, new PartGrip(PartOrigins.BUILTIN_CORE), "grip_wool_" + color.name().toLowerCase(Locale.ROOT));
+        register(reg, new PartGrip(PartOrigins.BUILTIN_CORE), "grip_leather");
 
-        register(reg, new PartBowstring(), "bowstring_string");
-        register(reg, new PartBowstring(), "bowstring_sinew");
+        register(reg, new PartBowstring(PartOrigins.BUILTIN_CORE), "bowstring_string");
+        register(reg, new PartBowstring(PartOrigins.BUILTIN_CORE), "bowstring_sinew");
 
         for (MiscUpgrades upgrade : MiscUpgrades.values())
             register(reg, upgrade.getPart(), upgrade.getPartName());
@@ -117,17 +117,9 @@ public class ModMaterials implements IPhasedInitializer {
                     String type = match.group();
                     SilentGear.log.info("Trying to add part {}, type {}", name, type);
 
-                    // FIXME: Stringly typed much? And what about add-on part types? You can do better.
-                    if ("main".equals(type))
-                        register(reg, new PartMain(true), filename);
-                    else if ("rod".equals(type))
-                        register(reg, new PartRod(true), filename);
-                    else if ("bowstring".equals(type))
-                        register(reg, new PartBowstring(true), filename);
-                    else if ("tip".equals(type))
-                        register(reg, new PartTip(true), filename);
-                    else if ("grip".equals(type))
-                        register(reg, new PartGrip(true), filename);
+                    PartType partType = PartType.get(type);
+                    if (partType != null)
+                        register(reg, partType.construct(PartOrigins.USER_DEFINED), filename);
                     else
                         SilentGear.log.error("Unknown part type \"{}\" for {}", type, filename);
                 }

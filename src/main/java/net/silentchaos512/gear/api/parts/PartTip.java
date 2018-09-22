@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class PartTip extends ItemPart implements IUpgradePart {
-
-    public PartTip() {
-        super(false);
+    public PartTip(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartTip(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.TIP;
     }
 
     @Override

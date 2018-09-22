@@ -63,7 +63,7 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
     protected int brokenColor = Color.VALUE_WHITE;
     protected TextFormatting nameColor = TextFormatting.GRAY;
     protected String localizedNameOverride = "";
-    private final boolean userDefined;
+    private final PartOrigins origin;
     @Getter(AccessLevel.PACKAGE)
     @Setter(AccessLevel.PACKAGE)
     private int id;
@@ -71,15 +71,15 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
     @Getter(AccessLevel.NONE)
     protected Multimap<ItemStat, StatInstance> stats = new StatModifierMap();
 
-    public ItemPart(boolean userDefined) {
-//        this.textureSuffix = REGEX_TEXTURE_SUFFIX_REPLACE.matcher(registryName.getPath()).replaceFirst("");
-        this.userDefined = userDefined;
-//        loadJsonResources();
+    public ItemPart(PartOrigins origin) {
+        this.origin = origin;
     }
 
     // ===========================
     // = Stats and Miscellaneous =
     // ===========================
+
+    public abstract PartType getType();
 
     public ItemStack getCraftingStack() {
         return craftingStack.get();
@@ -238,11 +238,17 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
      * Gets a string that represents the type of part (main, rod, tip, etc.) Used for localization
      * of part type/class, not the individual part.
      */
+    @Deprecated
     public abstract String getTypeName();
+
+    public String getDebugSymbol() {
+        return this.getType().getDebugSymbol();
+    }
 
     @Override
     public String toString() {
-        String str = this.getClass().getName() + "{";
+        String str = this.getClass().getName() + "[" + this.getDebugSymbol() + "]{";
+        str += this.origin + ", ";
         str += "Key: " + this.getRegistryName() + ", ";
         str += "CraftingStack: " + this.craftingStack.get() + ", ";
         str += "CraftingOreDictName: '" + this.craftingOreDictName + "', ";
@@ -275,7 +281,7 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
             } catch (Exception e) {
                 SilentGear.log.catching(e);
             }
-        } else {
+        } else if (this.origin.isBuiltin()) {
             SilentGear.log.error("ItemPart {} is missing its data file!", this);
         }
 
@@ -291,6 +297,9 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
         } catch (Exception e) {
             SilentGear.log.catching(e);
         }
+
+        if (this.textureSuffix.isEmpty())
+            this.textureSuffix = REGEX_TEXTURE_SUFFIX_REPLACE.matcher(registryName.getPath()).replaceFirst("");
     }
 
     /**
@@ -315,9 +324,14 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
     }
 
     public void postInitChecks() {
+        ResourceLocation name = Objects.requireNonNull(this.getRegistryName());
+
+        if (this.origin == PartOrigins.BUILTIN_CORE && !SilentGear.MOD_ID.equals(name.getNamespace()))
+            throw new RuntimeException(String.format("Part \"%s\" has origin %s, but should be %s",
+                    name, PartOrigins.BUILTIN_CORE, PartOrigins.BUILTIN_ADDON));
+
         if (getCraftingStack().isEmpty())
-            SilentGear.log.warn("Part \"{}\"{}has no crafting item.", this.getRegistryName(),
-                    (this.userDefined ? " (user defined) " : " "));
+            SilentGear.log.warn("Part \"{}\" ({}) has no crafting item.", name, this.origin);
     }
 
     /**
@@ -325,7 +339,16 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
      */
     public static final class Dummy extends ItemPart {
         private Dummy() {
-            super(false);
+            super(PartOrigins.BUILTIN_CORE);
+        }
+
+        private Dummy(PartOrigins origin) {
+            super(origin);
+        }
+
+        @Override
+        public PartType getType() {
+            return PartType.DUMMY;
         }
 
         static Dummy dummyFactory(ResourceLocation key) {
@@ -336,6 +359,10 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
 
         static Dummy missingFactory(ResourceLocation key, boolean isNetwork) {
             return dummyFactory(key);
+        }
+
+        static Dummy typeFactory(PartOrigins origin) {
+            return new Dummy(origin);
         }
 
         @Override
@@ -362,6 +389,11 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
         @Override
         public String getTypeName() {
             return "dummy";
+        }
+
+        @Override
+        public String getDebugSymbol() {
+            return "d";
         }
 
         @Override

@@ -1,5 +1,5 @@
 /*
- * Silent Gear -- ToolRods
+ * Silent Gear -- PartOrigin
  * Copyright (C) 2018 SilentChaos512
  *
  * This library is free software; you can redistribute it and/or
@@ -16,25 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.silentchaos512.gear.item;
+package net.silentchaos512.gear.api.parts;
 
-import lombok.Getter;
-import net.silentchaos512.gear.api.parts.PartOrigins;
-import net.silentchaos512.gear.api.parts.PartRod;
+public enum PartOrigins {
+    /**
+     * An {@link ItemPart} built-in to Silent Gear. Using this in an add-on mod will throw an
+     * exception.
+     */
+    BUILTIN_CORE,
+    /**
+     * An {@link ItemPart} built-in to another mod. This is the only valid origin for add-on mods.
+     */
+    BUILTIN_ADDON,
+    /**
+     * An {@link ItemPart} defined in the config folder (data packs in 1.13+, hopefully).
+     */
+    USER_DEFINED;
 
-import java.util.Locale;
-
-public enum ToolRods {
-    WOOD, BONE, STONE, IRON, BLAZE, END;
-
-    @Getter
-    private final PartRod part;
-
-    ToolRods() {
-        this.part = new PartRod(PartOrigins.BUILTIN_CORE);
+    public boolean isBuiltin() {
+        return this == BUILTIN_CORE || this == BUILTIN_ADDON;
     }
 
-    public String getPartName() {
-        return "rod_" + this.name().toLowerCase(Locale.ROOT);
+    public boolean isUserDefined() {
+        return this == USER_DEFINED;
     }
 }

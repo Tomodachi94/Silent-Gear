@@ -8,12 +8,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class PartBowstring extends ItemPart {
-    public PartBowstring() {
-        super(false);
+    public PartBowstring(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartBowstring(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.BOWSTRING;
     }
 
     @Override

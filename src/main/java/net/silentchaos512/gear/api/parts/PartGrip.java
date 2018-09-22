@@ -10,12 +10,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class PartGrip extends ItemPart implements IUpgradePart {
-    public PartGrip() {
-        super(false);
+    public PartGrip(PartOrigins origin) {
+        super(origin);
     }
 
-    public PartGrip(boolean userDefined) {
-        super(userDefined);
+    @Override
+    public PartType getType() {
+        return PartType.GRIP;
     }
 
     @Override
