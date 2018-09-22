@@ -19,8 +19,6 @@
 package net.silentchaos512.gear.item;
 
 import lombok.Getter;
-import net.minecraft.util.ResourceLocation;
-import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.parts.PartRod;
 
 import java.util.Locale;
@@ -32,6 +30,10 @@ public enum ToolRods {
     private final PartRod part;
 
     ToolRods() {
-        this.part = new PartRod(new ResourceLocation(SilentGear.MOD_ID, "rod_" + name().toLowerCase(Locale.ROOT)));
+        this.part = new PartRod();
+    }
+
+    public String getPartName() {
+        return "rod_" + this.name().toLowerCase(Locale.ROOT);
     }
 }

@@ -1,6 +1,7 @@
 package net.silentchaos512.gear.util;
 
 import com.google.common.collect.Multimap;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item.ToolMaterial;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
@@ -8,6 +9,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagEnd;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.EnumHelper;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.silentchaos512.gear.SilentGear;
@@ -26,7 +28,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.UUID;
 
-public class GearData {
+public final class GearData {
     /**
      * A fake material for tools. Tools need a gear material, even if it's not used. Unfortunately,
      * some mods still reference the gear material instead of calling the appropriate methods.
@@ -53,56 +55,68 @@ public class GearData {
     private static final int MAX_ROD_PARTS = 1;
     private static final int MAX_TIP_PARTS = 1;
 
+    private GearData() {
+    }
+
     /**
-     * Recalculate gear stats and setup NBT. This should be call ANY TIME an item is modified!
-     *
-     * @param stack
+     * Recalculate gear stats and setup NBT. This should be called ANY TIME an item is modified!
      */
     public static void recalculateStats(ItemStack stack) {
+        recalculateStats(stack, null);
+    }
+
+    /**
+     * Recalculate gear stats and setup NBT. This should be called ANY TIME an item is modified!
+     */
+    public static void recalculateStats(ItemStack stack, @Nullable EntityPlayer player) {
         getUUID(stack);
 
         // Has locked stats tag?
         NBTTagCompound propertiesCompound = getData(stack, NBT_ROOT_PROPERTIES);
         if (!propertiesCompound.hasKey(NBT_LOCK_STATS))
             propertiesCompound.setBoolean(NBT_LOCK_STATS, false);
-        else if (propertiesCompound.getBoolean(NBT_LOCK_STATS))
-            return;
 
+        final boolean lockedStats = propertiesCompound.getBoolean(NBT_LOCK_STATS);
         ICoreItem item = (ICoreItem) stack.getItem();
-
-        // Get parts the item was made with
         PartDataList parts = getConstructionParts(stack);
-        if (parts.size() == 0)
-            return;
-        // Build unique parts set
-        PartDataList uniqueParts = parts.getUniqueParts(true);
 
-        // Calculate synergy value
-        double synergy = calculateSynergyValue(parts, uniqueParts);
+        // Items with no parts or 1+ dummy (invalid) parts effectively have locked stats.
+        if (parts.isEmpty()) {
+            if (player != null)
+                SilentGear.log.warn("Tried to recalculate stats for {}, but parts list is empty (player {})", stack, player.getName());
+        } else if (containsDummyParts(parts)) {
+            if (player != null)
+                SilentGear.log.warn("Tried to recalculate stats for {}, but item contains invalid parts (player {})", stack, player.getName());
+        } else if (!lockedStats) {
+            // Seems to be a valid item without locked stats
+            PartDataList uniqueParts = parts.getUniqueParts(true);
+            double synergy = calculateSynergyValue(parts, uniqueParts);
 
-        // Only consider stats relevant to the item
-        // Collection<ItemStat> relevantStats = stack.getItem() instanceof ICoreItem
-        // ? item.getRelevantStats(stack)
-        // : ItemStat.ALL_STATS.values();
+            // Get all stat modifiers from all parts and item class modifiers
+            Multimap<ItemStat, StatInstance> stats = getStatModifiers(item, parts, synergy);
 
-        // Get all stat modifiers from all parts and item class modifiers
-        Multimap<ItemStat, StatInstance> stats = getStatModifiers(item, parts, synergy);
+            // Calculate and write stats
+            for (ItemStat stat : stats.keySet()) {
+                float value = stat.compute(0f, stats.get(stat));
+                propertiesCompound.setFloat(stat.getName().getPath(), value);
+            }
+            propertiesCompound.setFloat(NBT_SYNERGY_DISPLAY, (float) synergy);
 
-        // Calculate and write stats
-        for (ItemStat stat : stats.keySet()) {
-            float value = stat.compute(0f, stats.get(stat));
-            // SilentGear.log.debug(stat, value);
-            propertiesCompound.setFloat(stat.getName().getPath(), value);
+            // Save model keys for performance
+            // Remove the old keys first, then get new ones from ICoreItem
+            stack.getOrCreateSubCompound(NBT_ROOT).removeTag(NBT_ROOT_MODEL_KEYS);
+            NBTTagCompound modelKeys = getData(stack, NBT_ROOT_MODEL_KEYS);
+            for (int i = 0; i < item.getAnimationFrames(); ++i) {
+                modelKeys.setString(Integer.toString(i), item.getModelKey(stack, i, parts));
+            }
         }
-        propertiesCompound.setFloat(NBT_SYNERGY_DISPLAY, (float) synergy);
+    }
 
-        // Save model keys for performance
-        // Remove the old keys first, then get new ones from ICoreItem
-        stack.getOrCreateSubCompound(NBT_ROOT).removeTag(NBT_ROOT_MODEL_KEYS);
-        NBTTagCompound modelKeys = getData(stack, NBT_ROOT_MODEL_KEYS);
-        for (int i = 0; i < item.getAnimationFrames(); ++i) {
-            modelKeys.setString(Integer.toString(i), item.getModelKey(stack, i, parts.toArray(new ItemPartData[0])));
-        }
+    private static boolean containsDummyParts(Iterable<ItemPartData> parts) {
+        for (ItemPartData part : parts)
+            if (part.getPart() instanceof ItemPart.Dummy)
+                return true;
+        return false;
     }
 
     public static String getCachedModelKey(ItemStack stack, int animationFrame) {
@@ -112,7 +126,7 @@ public class GearData {
         NBTTagCompound tags = getData(stack, NBT_ROOT_MODEL_KEYS);
         String key = Integer.toString(animationFrame);
         if (!tags.hasKey(key))
-            tags.setString(key,  ((ICoreItem) stack.getItem()).getModelKey(stack, animationFrame));
+            tags.setString(key, ((ICoreItem) stack.getItem()).getModelKey(stack, animationFrame));
         return tags.getString(Integer.toString(animationFrame));
     }
 
@@ -392,17 +406,15 @@ public class GearData {
         getData(stack, NBT_ROOT_CONSTRUCTION).setInteger(NBT_REPAIR_COUNT, getRepairCount(stack) + amount);
     }
 
-    public static class EventHandler {
-
-        public static final EventHandler INSTANCE = new EventHandler();
-
+    @Mod.EventBusSubscriber
+    public static final class EventHandler {
         private EventHandler() {
         }
 
         @SubscribeEvent
-        public void onPlayerLoggedIn(PlayerLoggedInEvent event) {
+        public static void onPlayerLoggedIn(PlayerLoggedInEvent event) {
             for (ItemStack stack : PlayerHelper.getNonEmptyStacks(event.player, s -> s.getItem() instanceof ICoreItem)) {
-                recalculateStats(stack);
+                recalculateStats(stack, event.player);
             }
         }
     }

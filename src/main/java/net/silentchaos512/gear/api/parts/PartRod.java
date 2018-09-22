@@ -8,14 +8,15 @@ import net.silentchaos512.gear.api.stats.ItemStat;
 import net.silentchaos512.gear.api.stats.StatInstance;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class PartRod extends ItemPart {
-    public PartRod(ResourceLocation name) {
-        super(name, false);
+    public PartRod() {
+        super(false);
     }
 
-    public PartRod(ResourceLocation name, boolean userDefined) {
-        super(name, userDefined);
+    public PartRod(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override
@@ -25,7 +26,8 @@ public final class PartRod extends ItemPart {
 
     @Override
     public ResourceLocation getTexture(ItemPartData part, ItemStack gear, String gearClass, IPartPosition position, int animationFrame) {
-        return new ResourceLocation(this.registryName.getNamespace(), "items/" + gearClass + "/rod_" + this.textureSuffix);
+        return new ResourceLocation(Objects.requireNonNull(this.getRegistryName()).getNamespace(),
+                "items/" + gearClass + "/rod_" + this.textureSuffix);
     }
 
     @Override

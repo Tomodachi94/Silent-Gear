@@ -100,6 +100,10 @@ public interface ICoreItem extends IStatItem, ICustomEnchantColor {
         return builder.toString();
     }
 
+    default String getModelKey(ItemStack stack, int animationFrame, Collection<ItemPartData> parts) {
+        return getModelKey(stack, animationFrame, parts.toArray(new ItemPartData[0]));
+    }
+
     default String getModelKey(ItemStack stack, int animationFrame) {
         return getModelKey(stack, animationFrame, getRenderParts(stack));
     }

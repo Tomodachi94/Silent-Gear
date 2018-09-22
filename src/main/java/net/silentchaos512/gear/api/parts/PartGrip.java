@@ -7,19 +7,21 @@ import net.silentchaos512.gear.api.item.ICoreItem;
 import net.silentchaos512.gear.api.item.ICoreTool;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class PartGrip extends ItemPart implements IUpgradePart {
-    public PartGrip(ResourceLocation name) {
-        super(name, false);
+    public PartGrip() {
+        super(false);
     }
 
-    public PartGrip(ResourceLocation name, boolean userDefined) {
-        super(name, userDefined);
+    public PartGrip(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override
     public ResourceLocation getTexture(ItemPartData part, ItemStack gear, String gearClass, IPartPosition position, int animationFrame) {
-        return new ResourceLocation(this.registryName.getNamespace(), "items/" + gearClass + "/grip_" + this.textureSuffix);
+        return new ResourceLocation(Objects.requireNonNull(this.getRegistryName()).getNamespace(),
+                "items/" + gearClass + "/grip_" + this.textureSuffix);
     }
 
     @Override

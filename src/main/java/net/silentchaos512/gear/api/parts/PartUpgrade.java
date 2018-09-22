@@ -26,12 +26,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class PartUpgrade extends ItemPart implements IUpgradePart {
-    public PartUpgrade(ResourceLocation registryName) {
-        this(registryName, false);
+    public PartUpgrade() {
+        this(false);
     }
 
-    public PartUpgrade(ResourceLocation registryName, boolean userDefined) {
-        super(registryName, userDefined);
+    public PartUpgrade(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override

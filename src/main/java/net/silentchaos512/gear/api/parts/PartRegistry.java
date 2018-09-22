@@ -4,6 +4,12 @@ import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryBuilder;
+import net.silentchaos512.gear.SilentGear;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -14,7 +20,15 @@ import java.util.*;
  *
  * @author SilentChaos512
  */
+@Mod.EventBusSubscriber
 public final class PartRegistry {
+    static IForgeRegistry<ItemPart> registry;
+
+    private static final ResourceLocation REGISTRY_NAME = new ResourceLocation(SilentGear.MOD_ID, "parts");
+
+    private static final Map<Integer, ItemPart> PARTS_BY_ID = new HashMap<>();
+
+    @Deprecated
     private static Map<String, ItemPart> map = new LinkedHashMap<>();
     private static List<PartMain> mains = null;
     private static List<PartRod> rods = null;
@@ -30,9 +44,11 @@ public final class PartRegistry {
 
     /**
      * Gets the part with the given key, if it exists.
+     *
      * @param key The part name/key
      * @return The {@link ItemPart} with the given key, or null if there is no match
      */
+    @Deprecated
     @Nullable
     public static ItemPart get(String key) {
         return map.get(key);
@@ -40,9 +56,11 @@ public final class PartRegistry {
 
     /**
      * Gets the part with the given key, if it exists.
+     *
      * @param key The part name/key
      * @return The {@link ItemPart} with the given key, or null if there is no match
      */
+    @Deprecated
     @Nullable
     public static ItemPart get(ResourceLocation key) {
         return map.get(key.toString());
@@ -54,6 +72,7 @@ public final class PartRegistry {
      * @param stack {@link ItemStack} that may or may not be an {@link ItemPart}
      * @return The matching {@link ItemPart}, or null if there is none
      */
+    @Deprecated
     @Nullable
     public static ItemPart get(ItemStack stack) {
         if (stack.isEmpty())
@@ -77,16 +96,24 @@ public final class PartRegistry {
      *
      * @param part The {@link ItemPart}
      */
+    @Deprecated
     public static <T extends ItemPart> T putPart(@Nonnull T part) {
-        String key = part.registryName.toString();
-        if (map.containsKey(key))
-            throw new IllegalArgumentException("Already have a part with key " + part.registryName);
-        map.put(key, part);
+        String key = part.getRegistryName().toString();
+        if (map.containsKey(key)) {
+            //throw new IllegalArgumentException("Already have a part with key " + key);
+        } else {
+            map.put(key, part);
+        }
 
         if (part instanceof PartMain && part.getTier() > highestMainPartTier)
             highestMainPartTier = part.getTier();
 
         return part;
+    }
+
+    @Nullable
+    public static ItemPart byId(int id) {
+        return PARTS_BY_ID.get(id);
     }
 
     public static Set<String> getKeySet() {
@@ -103,7 +130,7 @@ public final class PartRegistry {
      */
     public static List<PartMain> getMains() {
         if (mains == null) {
-            mains = map.values().stream()
+            mains = registry.getValuesCollection().stream()
                     .filter(p -> p instanceof PartMain)
                     .map(PartMain.class::cast).collect(ImmutableList.toImmutableList());
         }
@@ -115,7 +142,7 @@ public final class PartRegistry {
      */
     public static List<PartRod> getRods() {
         if (rods == null) {
-            rods = map.values().stream()
+            rods = registry.getValuesCollection().stream()
                     .filter(p -> p instanceof PartRod)
                     .map(PartRod.class::cast).collect(ImmutableList.toImmutableList());
         }
@@ -127,7 +154,7 @@ public final class PartRegistry {
      */
     public static List<PartMain> getVisibleMains() {
         if (visibleMains == null) {
-            visibleMains = map.values().stream()
+            visibleMains = registry.getValuesCollection().stream()
                     .filter(p -> p instanceof PartMain && !p.isBlacklisted() && !p.isHidden())
                     .map(PartMain.class::cast).collect(ImmutableList.toImmutableList());
         }
@@ -139,7 +166,7 @@ public final class PartRegistry {
      */
     public static List<PartRod> getVisibleRods() {
         if (visibleRods == null) {
-            visibleRods = map.values().stream()
+            visibleRods = registry.getValuesCollection().stream()
                     .filter(p -> p instanceof PartRod && !p.isBlacklisted() && !p.isHidden())
                     .map(PartRod.class::cast).collect(ImmutableList.toImmutableList());
         }
@@ -154,5 +181,34 @@ public final class PartRegistry {
     public static void getDebugLines(List<String> list) {
         list.add("PartRegistry.map=" + map.size());
         list.add("PartRegistry.STACK_TO_PART=" + STACK_TO_PART.size());
+    }
+
+    @SubscribeEvent
+    public static void createRegistry(RegistryEvent.NewRegistry event) {
+        SilentGear.log.info("Creating ItemPart registry");
+
+        RegistryBuilder<ItemPart> builder = new RegistryBuilder<>();
+        builder.setType(ItemPart.class);
+        builder.add((IForgeRegistry.AddCallback<ItemPart>) (owner, stage, id, obj, oldObj) -> {
+            SilentGear.log.debug("PartRegistry AddCallback: {} {} {} {} {}", owner, stage, id, obj, oldObj);
+            obj.setId(id);
+            putPart(obj);
+            PARTS_BY_ID.put(id, obj);
+        });
+        builder.add((IForgeRegistry.ClearCallback<ItemPart>) (owner, stage) -> {
+            SilentGear.log.debug("PartRegistry ClearCallback: {} {}", owner, stage);
+            map.clear();
+            PARTS_BY_ID.clear();
+        });
+        builder.set(ItemPart.Dummy::dummyFactory);
+        builder.set(ItemPart.Dummy::missingFactory);
+        builder.allowModification();
+        builder.setName(REGISTRY_NAME);
+
+        registry = builder.create();
+    }
+
+    public static void loadJsonResources() {
+        registry.forEach(ItemPart::loadJsonResources);
     }
 }

@@ -5,14 +5,15 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class PartBowstring extends ItemPart {
-    public PartBowstring(ResourceLocation name) {
-        super(name, false);
+    public PartBowstring() {
+        super(false);
     }
 
-    public PartBowstring(ResourceLocation name, boolean userDefined) {
-        super(name, userDefined);
+    public PartBowstring(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override
@@ -23,8 +24,8 @@ public final class PartBowstring extends ItemPart {
     @Override
     public ResourceLocation getTexture(ItemPartData part, ItemStack stack, String toolClass, IPartPosition position, int animationFrame) {
         if (!"bow".equals(toolClass)) return BLANK_TEXTURE;
-        return new ResourceLocation(this.registryName.getNamespace(), "items/" + toolClass + "/bowstring_"
-                + this.textureSuffix + "_" + animationFrame);
+        return new ResourceLocation(Objects.requireNonNull(this.getRegistryName()).getNamespace(),
+                "items/" + toolClass + "/bowstring_" + this.textureSuffix + "_" + animationFrame);
     }
 
     @Override
@@ -34,7 +35,7 @@ public final class PartBowstring extends ItemPart {
 
     @Override
     public String getModelIndex(ItemPartData part, int animationFrame) {
-        return this.modelIndex + "_" + animationFrame;
+        return this.getId() + "_" + animationFrame;
     }
 
     @Override

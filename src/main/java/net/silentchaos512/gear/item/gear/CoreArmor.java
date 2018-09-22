@@ -45,6 +45,7 @@ public class CoreArmor extends ItemArmor implements ICoreArmor {
     // Same values as in ItemArmor.
     private static final int[] MAX_DAMAGE_ARRAY = {13, 15, 16, 11};
 
+    // TODO: This should be removed, right?
     private final String itemName;
 
     public CoreArmor(EntityEquipmentSlot slot, String name) {

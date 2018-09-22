@@ -2,8 +2,13 @@ package net.silentchaos512.gear.init;
 
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.registries.IForgeRegistry;
 import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.parts.*;
 import net.silentchaos512.gear.config.Config;
@@ -19,44 +24,62 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Mod.EventBusSubscriber
 public class ModMaterials implements IPhasedInitializer {
-
     public static final ModMaterials INSTANCE = new ModMaterials();
 
-    public static PartMain mainWood, mainStone, mainFlint, mainIron, mainGold, mainEmerald, mainDiamond, mainObsidian, mainNetherrack, mainTerracotta;
-    public static PartBowstring bowstringString, bowstringSinew;
+    // Not bothering to store references to most parts. These are the only ones I need.
+    @GameRegistry.ObjectHolder(SilentGear.RESOURCE_PREFIX + "main_wood")
+    public static final PartMain mainWood = null;
+    @GameRegistry.ObjectHolder(SilentGear.RESOURCE_PREFIX + "main_iron")
+    public static final PartMain mainIron = null;
+    @GameRegistry.ObjectHolder(SilentGear.RESOURCE_PREFIX + "bowstring_string")
+    public static final PartBowstring bowstringString = null;
 
-    @Override
-    public void preInit(SRegistry registry, FMLPreInitializationEvent event) {
-        mainWood = PartRegistry.putPart(new PartMain(getPath("main_wood")));
-        mainStone = PartRegistry.putPart(new PartMain(getPath("main_stone")));
-        mainFlint = PartRegistry.putPart(new PartMain(getPath("main_flint")));
-        mainTerracotta = PartRegistry.putPart(new PartMain(getPath("main_terracotta")));
-        mainNetherrack = PartRegistry.putPart(new PartMain(getPath("main_netherrack")));
-        mainIron = PartRegistry.putPart(new PartMain(getPath("main_iron")));
-        mainGold = PartRegistry.putPart(new PartMain(getPath("main_gold")));
-        mainEmerald = PartRegistry.putPart(new PartMain(getPath("main_emerald")));
-        mainDiamond = PartRegistry.putPart(new PartMain(getPath("main_diamond")));
-        mainObsidian = PartRegistry.putPart(new PartMain(getPath("main_obsidian")));
-        //mainTest = PartRegistry.putPart(new PartMain(getPath("main_test")));
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void registerParts(RegistryEvent.Register<ItemPart> event) {
+        IForgeRegistry<ItemPart> reg = event.getRegistry();
+
+        register(reg, new PartMain(), "main_wood");
+        register(reg, new PartMain(), "main_stone");
+        register(reg, new PartMain(), "main_flint");
+        register(reg, new PartMain(), "main_terracotta");
+        register(reg, new PartMain(), "main_netherrack");
+        register(reg, new PartMain(), "main_iron");
+        register(reg, new PartMain(), "main_gold");
+        register(reg, new PartMain(), "main_emerald");
+        register(reg, new PartMain(), "main_diamond");
+        register(reg, new PartMain(), "main_obsidian");
+//        if (SilentGear.instance.isDevBuild()) register(reg, new PartMain(), "main_test");
 
         for (ToolRods rod : ToolRods.values())
-            PartRegistry.putPart(rod.getPart());
+            register(reg, rod.getPart(), rod.getPartName());
 
         for (TipUpgrades tip : TipUpgrades.values())
-            PartRegistry.putPart(tip.getPart());
+            register(reg, tip.getPart(), tip.getPartName());
 
         for (EnumDyeColor color : EnumDyeColor.values())
-            PartRegistry.putPart(new PartGrip(getPath("grip_wool_" + color.name().toLowerCase(Locale.ROOT))));
-        PartRegistry.putPart(new PartGrip(getPath("grip_leather")));
+            register(reg, new PartGrip(), "grip_wool_" + color.name().toLowerCase(Locale.ROOT));
+        register(reg, new PartGrip(), "grip_leather");
 
-        bowstringString = PartRegistry.putPart(new PartBowstring(getPath("bowstring_string")));
-        bowstringSinew = PartRegistry.putPart(new PartBowstring(getPath("bowstring_sinew")));
+        register(reg, new PartBowstring(), "bowstring_string");
+        register(reg, new PartBowstring(), "bowstring_sinew");
 
         for (MiscUpgrades upgrade : MiscUpgrades.values())
-            PartRegistry.putPart(upgrade.getPart());
+            register(reg, upgrade.getPart(), upgrade.getPartName());
 
-        UserDefined.loadUserParts();
+        UserDefined.loadUserParts(reg);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void loadJsonResources(RegistryEvent.Register<ItemPart> event) {
+        PartRegistry.loadJsonResources();
+    }
+
+    private static void register(IForgeRegistry<ItemPart> registry, ItemPart part, String name) {
+        ResourceLocation registryName = new ResourceLocation(SilentGear.MOD_ID, name);
+        part.setRegistryName(registryName);
+        registry.register(part);
     }
 
     @Override
@@ -67,12 +90,8 @@ public class ModMaterials implements IPhasedInitializer {
         GearHelper.resetSubItemsCache();
     }
 
-    private static ResourceLocation getPath(String key) {
-        return new ResourceLocation(SilentGear.MOD_ID, key);
-    }
-
     private static final class UserDefined {
-        static void loadUserParts() {
+        static void loadUserParts(IForgeRegistry<ItemPart> reg) {
             final File directory = new File(Config.INSTANCE.getDirectory(), "materials");
             final File[] files = directory.listFiles();
             if (!directory.isDirectory() || files == null) {
@@ -82,32 +101,38 @@ public class ModMaterials implements IPhasedInitializer {
 
             final Pattern typeRegex = Pattern.compile("^[a-z]+");
             for (File file : files) {
-                SilentGear.log.info("Material file found: {}", file);
-                String filename = file.getName().replace(".json", "");
-                ResourceLocation name = getPath(filename);
+                loadFromFile(reg, typeRegex, file);
+            }
+        }
 
-                // Add to registered parts if it doesn't exist
-                if (!PartRegistry.getKeySet().contains(name.toString())) {
-                    Matcher match = typeRegex.matcher(filename);
-                    if (match.find()) {
-                        String type = match.group();
-                        SilentGear.log.info("Trying to add part {}, type {}", name, type);
-                        if ("main".equals(type))
-                            PartRegistry.putPart(new PartMain(name, true));
-                        else if ("rod".equals(type))
-                            PartRegistry.putPart(new PartRod(name, true));
-                        else if ("bowstring".equals(type))
-                            PartRegistry.putPart(new PartBowstring(name, true));
-                        else if ("tip".equals(type))
-                            PartRegistry.putPart(new PartTip(name, true));
-                        else if ("grip".equals(type))
-                            PartRegistry.putPart(new PartGrip(name, true));
-                        else
-                            SilentGear.log.warn("Unknown part type \"{}\" for {}", type, filename);
-                    }
-                } else {
-                    SilentGear.log.info("Part already registered. Must be an override.");
+        private static void loadFromFile(IForgeRegistry<ItemPart> reg, Pattern typeRegex, File file) {
+            SilentGear.log.info("Material file found: {}", file);
+            String filename = file.getName().replace(".json", "");
+            ResourceLocation name = new ResourceLocation(SilentGear.MOD_ID, filename);
+
+            // Add to registered parts if it doesn't exist
+            if (!reg.containsKey(name)) {
+                Matcher match = typeRegex.matcher(filename);
+                if (match.find()) {
+                    String type = match.group();
+                    SilentGear.log.info("Trying to add part {}, type {}", name, type);
+
+                    // FIXME: Stringly typed much? And what about add-on part types? You can do better.
+                    if ("main".equals(type))
+                        register(reg, new PartMain(true), filename);
+                    else if ("rod".equals(type))
+                        register(reg, new PartRod(true), filename);
+                    else if ("bowstring".equals(type))
+                        register(reg, new PartBowstring(true), filename);
+                    else if ("tip".equals(type))
+                        register(reg, new PartTip(true), filename);
+                    else if ("grip".equals(type))
+                        register(reg, new PartGrip(true), filename);
+                    else
+                        SilentGear.log.error("Unknown part type \"{}\" for {}", type, filename);
                 }
+            } else {
+                SilentGear.log.info("Part already registered. Must be an override.");
             }
         }
     }

@@ -9,14 +9,15 @@ import net.silentchaos512.gear.api.stats.ItemStat;
 import net.silentchaos512.gear.api.stats.StatInstance;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class PartMain extends ItemPart {
-    public PartMain(ResourceLocation name) {
-        super(name, false);
+    public PartMain() {
+        super(false);
     }
 
-    public PartMain(ResourceLocation name, boolean userDefined) {
-        super(name, userDefined);
+    public PartMain(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override
@@ -30,7 +31,7 @@ public final class PartMain extends ItemPart {
         String partPosition = position.getTexturePrefix();
         String subtypePrefix = partPosition + (partPosition.isEmpty() ? "" : "_");
         String path = "items/" + toolClass + "/" + subtypePrefix + this.textureSuffix + frameStr;
-        return new ResourceLocation(this.registryName.getNamespace(), path);
+        return new ResourceLocation(Objects.requireNonNull(this.getRegistryName()).getNamespace(), path);
     }
 
     @Override

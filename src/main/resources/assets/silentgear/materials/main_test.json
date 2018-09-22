@@ -3,6 +3,7 @@
     "stats": [
         {"name": "durability",      "value":   40},
         {"name": "durability",      "value": -0.75, "op": "MUL2"},
+        {"name": "armor_durability","value":  100},
         {"name": "enchantability",  "value":   14},
         {"name": "harvest_level",   "value":    1},
         {"name": "harvest_speed",   "value":   99},
@@ -18,8 +19,7 @@
     ],
     "crafting_items": {
         "normal": {
-            "item": "silentgear:crafting_item",
-            "data": 1
+            "item": "silentgear:upgrade_base"
         }
     },
     "display": {

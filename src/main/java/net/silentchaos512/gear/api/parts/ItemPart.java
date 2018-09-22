@@ -5,6 +5,7 @@ import com.google.common.primitives.UnsignedInts;
 import com.google.gson.*;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -13,6 +14,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.event.GetStatModifierEvent;
 import net.silentchaos512.gear.api.stats.CommonItemStats;
@@ -23,6 +25,7 @@ import net.silentchaos512.gear.api.stats.StatModifierMap;
 import net.silentchaos512.gear.config.Config;
 import net.silentchaos512.gear.util.GearData;
 import net.silentchaos512.gear.util.GearHelper;
+import net.silentchaos512.lib.util.Color;
 import net.silentchaos512.lib.util.StackHelper;
 
 import javax.annotation.Nullable;
@@ -30,54 +33,48 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 // TODO: javadoc
-@Getter(value = AccessLevel.PUBLIC)
-public abstract class ItemPart {
+@Getter(AccessLevel.PUBLIC)
+public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
+    @Deprecated
+    public static final String NBT_KEY = "Key";
+    public static final String NBT_ID = "ID";
+
+    protected static final ResourceLocation BLANK_TEXTURE = new ResourceLocation(SilentGear.MOD_ID, "items/blank");
+
+    private static final Gson GSON = (new GsonBuilder()).create();
     private static final Pattern REGEX_TEXTURE_SUFFIX_REPLACE = Pattern.compile("[a-z]+_");
 
-    protected ResourceLocation registryName;
-
-    public static final String NBT_KEY = "Key";
-    protected static final ResourceLocation BLANK_TEXTURE = new ResourceLocation(SilentGear.MOD_ID, "items/blank");
-    private static final Gson GSON = (new GsonBuilder()).create();
-
-    @Getter(value = AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
     protected Supplier<ItemStack> craftingStack = () -> ItemStack.EMPTY;
     protected String craftingOreDictName = "";
-    @Getter(value = AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
     protected Supplier<ItemStack> craftingStackSmall = () -> ItemStack.EMPTY;
     protected String craftingOreDictNameSmall = "";
     protected int tier = 0;
     protected boolean enabled = true;
     protected boolean hidden = false;
-    protected String textureSuffix;
-    protected int textureColor = 0xFFFFFF;
-    protected int brokenColor = 0xFFFFFF;
+    protected String textureSuffix = "";
+    protected int textureColor = Color.VALUE_WHITE;
+    protected int brokenColor = Color.VALUE_WHITE;
     protected TextFormatting nameColor = TextFormatting.GRAY;
     protected String localizedNameOverride = "";
     private final boolean userDefined;
+    @Getter(AccessLevel.PACKAGE)
+    @Setter(AccessLevel.PACKAGE)
+    private int id;
 
-    /**
-     * Numerical index for model caching. This value could change any time the mod updates or new
-     * materials are added, so don't use it for persistent data! Also good for identifying subtypes
-     * in JEI.
-     */
-    @Getter(value = AccessLevel.NONE)
-    protected int modelIndex;
-    private static int lastModelIndex = -1;
-
-    @Getter(value = AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
     protected Multimap<ItemStat, StatInstance> stats = new StatModifierMap();
 
-    public ItemPart(ResourceLocation registryName, boolean userDefined) {
-        this.registryName = registryName;
-        this.textureSuffix = REGEX_TEXTURE_SUFFIX_REPLACE.matcher(registryName.getPath()).replaceFirst("");
-        this.modelIndex = ++lastModelIndex;
+    public ItemPart(boolean userDefined) {
+//        this.textureSuffix = REGEX_TEXTURE_SUFFIX_REPLACE.matcher(registryName.getPath()).replaceFirst("");
         this.userDefined = userDefined;
-        loadJsonResources();
+//        loadJsonResources();
     }
 
     // ===========================
@@ -198,9 +195,10 @@ public abstract class ItemPart {
      * Used for model caching. Be sure to include the animation frame if it matters!
      */
     public String getModelIndex(ItemPartData part, int animationFrame) {
-        return this.modelIndex + (animationFrame == 3 ? "_3" : "");
+        return this.id + (animationFrame == 3 ? "_3" : "");
     }
 
+    @SuppressWarnings("unused") // unused parameters
     public int getColor(ItemPartData part, ItemStack gear, int animationFrame) {
         if (!gear.isEmpty() && GearHelper.isBroken(gear))
             return this.brokenColor;
@@ -220,7 +218,8 @@ public abstract class ItemPart {
      * Gets a translation key for the part
      */
     public String getTranslationKey(@Nullable ItemPartData part) {
-        return String.format("material.%s.%s.name", this.registryName.getNamespace(), this.registryName.getPath());
+        ResourceLocation name = Objects.requireNonNull(this.getRegistryName());
+        return String.format("material.%s.%s.name", name.getNamespace(), name.getPath());
     }
 
     /**
@@ -243,8 +242,8 @@ public abstract class ItemPart {
 
     @Override
     public String toString() {
-        String str = "ItemPart{";
-        str += "Key: " + this.registryName + ", ";
+        String str = this.getClass().getName() + "{";
+        str += "Key: " + this.getRegistryName() + ", ";
         str += "CraftingStack: " + this.craftingStack.get() + ", ";
         str += "CraftingOreDictName: '" + this.craftingOreDictName + "', ";
         str += "Tier: " + this.tier;
@@ -260,10 +259,11 @@ public abstract class ItemPart {
      * Get the location of the resource file that contains material information
      */
     private String getResourceFileLocation() {
-        return String.format("assets/%s/materials/%s.json", this.registryName.getNamespace(), this.registryName.getPath());
+        ResourceLocation name = Objects.requireNonNull(this.getRegistryName());
+        return String.format("assets/%s/materials/%s.json", name.getNamespace(), name.getPath());
     }
 
-    private void loadJsonResources() {
+    void loadJsonResources() {
         // Main resource file in JAR
         String path = getResourceFileLocation();
         InputStream resourceAsStream = getClass().getClassLoader().getResourceAsStream(path);
@@ -276,11 +276,12 @@ public abstract class ItemPart {
                 SilentGear.log.catching(e);
             }
         } else {
-            SilentGear.log.error("ItemPart {} is missing its data file!", this.registryName);
+            SilentGear.log.error("ItemPart {} is missing its data file!", this);
         }
 
         // Override in config folder
-        File file = new File(Config.INSTANCE.getDirectory().getPath(), "materials/" + this.registryName.getPath() + ".json");
+        ResourceLocation registryName = Objects.requireNonNull(this.getRegistryName());
+        File file = new File(Config.INSTANCE.getDirectory().getPath(), "materials/" + registryName.getPath() + ".json");
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             readResourceFile(reader);
             if (SilentGear.log.getLogger().isDebugEnabled())
@@ -302,19 +303,68 @@ public abstract class ItemPart {
     }
 
     public void writeToNBT(NBTTagCompound tags) {
-        tags.setString("Key", this.registryName.toString());
+        tags.setInteger(NBT_ID, this.id);
+        tags.setString(NBT_KEY, Objects.requireNonNull(this.getRegistryName()).toString());
     }
 
     @Nullable
     public static ItemPart fromNBT(NBTTagCompound tags) {
-        String key = tags.getString(NBT_KEY);
-        return PartRegistry.get(key);
+        if (tags.hasKey(NBT_ID)) return PartRegistry.byId(tags.getInteger(NBT_ID));
+        else if (tags.hasKey(NBT_KEY)) return PartRegistry.get(tags.getString(NBT_KEY));
+        return null;
     }
 
     public void postInitChecks() {
         if (getCraftingStack().isEmpty())
-            SilentGear.log.warn("Part \"{}\"{}has no crafting item.", this.registryName,
+            SilentGear.log.warn("Part \"{}\"{}has no crafting item.", this.getRegistryName(),
                     (this.userDefined ? " (user defined) " : " "));
+    }
+
+    public static final class Dummy extends ItemPart {
+        private Dummy() {
+            super(false);
+        }
+
+        static Dummy dummyFactory(ResourceLocation key) {
+            Dummy dummy = new Dummy();
+            dummy.setRegistryName(key);
+            return dummy;
+        }
+
+        static Dummy missingFactory(ResourceLocation key, boolean isNetwork) {
+            return dummyFactory(key);
+        }
+
+        @Override
+        public IPartPosition getPartPosition() {
+            return PartPositions.ANY;
+        }
+
+        @Nullable
+        @Override
+        public ResourceLocation getTexture(ItemPartData part, ItemStack gear, String gearClass, IPartPosition position, int animationFrame) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public ResourceLocation getTexture(ItemPartData part, ItemStack gear, String gearClass, int animationFrame) {
+            return null;
+        }
+
+        @Override
+        public void addInformation(ItemPartData part, ItemStack gear, World world, List<String> tooltip, boolean advanced) {
+        }
+
+        @Override
+        public String getTypeName() {
+            return "dummy";
+        }
+
+        @Override
+        void loadJsonResources() {
+            // NO-OP
+        }
     }
 
     /**
@@ -333,7 +383,9 @@ public abstract class ItemPart {
             if (elementStats.isJsonArray()) {
                 JsonArray array = elementStats.getAsJsonArray();
                 Multimap<ItemStat, StatInstance> statMap = new StatModifierMap();
+                int index = 0;
                 for (JsonElement element : array) {
+                    ++index;
                     JsonObject obj = element.getAsJsonObject();
                     String name = JsonUtils.getString(obj, "name", "");
                     ItemStat stat = ItemStat.ALL_STATS.get(name);
@@ -342,17 +394,19 @@ public abstract class ItemPart {
                         float value = JsonUtils.getFloat(obj, "value", 0f);
                         Operation op = obj.has("op") ? Operation.byName(JsonUtils.getString(obj, "op"))
                                 : part.getDefaultStatOperation(stat);
-                        String id = String.format("mat_%s_%s%d", part.getTranslationKey(null), stat.getName(),
-                                statMap.get(stat).size() + 1);
+                        String id = String.format("mat_%s_%s%d", part.getRegistryName(), stat.getName(), index);
                         statMap.put(stat, new StatInstance(id, value, op));
                     }
                 }
 
                 // Move the newly loaded modifiers into the stat map, replacing existing ones
-                statMap.forEach((stat, instance) -> {
-                    part.stats.removeAll(stat);
-                    part.stats.put(stat, instance);
-                });
+                for (ItemStat stat : statMap.keySet()) {
+                    Collection<StatInstance> newList = statMap.get(stat);
+                    if (!newList.isEmpty()) {
+                        part.stats.removeAll(stat);
+                        part.stats.putAll(stat, newList);
+                    }
+                }
             }
         }
 
@@ -406,7 +460,7 @@ public abstract class ItemPart {
                 return UnsignedInts.parseUnsignedInt(str, 16);
             } catch (NumberFormatException ex) {
                 ex.printStackTrace();
-                return 0xFFFFFF;
+                return Color.VALUE_WHITE;
             }
         }
 

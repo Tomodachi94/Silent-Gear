@@ -20,7 +20,6 @@ package net.silentchaos512.gear.item;
 
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.silentchaos512.gear.SilentGear;
@@ -44,14 +43,17 @@ public enum MiscUpgrades implements IEnumItems<MiscUpgrades, MiscUpgrades.Item> 
 
     MiscUpgrades(final Predicate<ICoreItem> canApplyTo) {
         this.item = new MiscUpgrades.Item();
-        ResourceLocation partName = new ResourceLocation(SilentGear.MOD_ID, "misc_" + name().toLowerCase(Locale.ROOT));
 
-        this.part = new PartUpgrade(partName) {
+        this.part = new PartUpgrade() {
             @Override
             public boolean isValidFor(@Nonnull ICoreItem gearItem) {
                 return canApplyTo.test(gearItem);
             }
         };
+    }
+
+    public String getPartName() {
+        return "misc_" + this.name().toLowerCase(Locale.ROOT);
     }
 
     private static boolean matchPickaxe(ICoreItem item) {

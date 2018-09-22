@@ -8,21 +8,23 @@ import net.silentchaos512.gear.api.stats.ItemStat;
 import net.silentchaos512.gear.api.stats.StatInstance;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class PartTip extends ItemPart implements IUpgradePart {
 
-    public PartTip(ResourceLocation name) {
-        super(name, false);
+    public PartTip() {
+        super(false);
     }
 
-    public PartTip(ResourceLocation name, boolean userDefined) {
-        super(name, userDefined);
+    public PartTip(boolean userDefined) {
+        super(userDefined);
     }
 
     @Override
     public ResourceLocation getTexture(ItemPartData part, ItemStack gear, String gearClass, IPartPosition position, int animationFrame) {
         String frameStr = "bow".equals(gearClass) && animationFrame == 3 ? "_3" : "";
-        return new ResourceLocation(this.registryName.getNamespace(), "items/" + gearClass + "/tip_" + this.textureSuffix + frameStr);
+        return new ResourceLocation(Objects.requireNonNull(this.getRegistryName()).getNamespace(),
+                "items/" + gearClass + "/tip_" + this.textureSuffix + frameStr);
     }
 
     @Override

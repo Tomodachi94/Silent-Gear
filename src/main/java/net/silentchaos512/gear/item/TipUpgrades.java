@@ -2,9 +2,7 @@ package net.silentchaos512.gear.item;
 
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.parts.ItemPartData;
 import net.silentchaos512.gear.api.parts.PartTip;
 import net.silentchaos512.lib.item.IEnumItems;
@@ -28,7 +26,11 @@ public enum TipUpgrades implements IEnumItems<TipUpgrades, TipUpgrades.Item> {
 
     TipUpgrades() {
         this.item = new TipUpgrades.Item();
-        this.part = new PartTip(new ResourceLocation(SilentGear.MOD_ID, "tip_" + name().toLowerCase(Locale.ROOT)));
+        this.part = new PartTip();
+    }
+
+    public String getPartName() {
+        return "tip_" + this.name().toLowerCase(Locale.ROOT);
     }
 
     @Nonnull
