@@ -8,12 +8,16 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryInternal;
 import net.minecraftforge.registries.RegistryBuilder;
+import net.minecraftforge.registries.RegistryManager;
 import net.silentchaos512.gear.SilentGear;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Used to register gear parts, and match parts to item stacks.
@@ -22,21 +26,16 @@ import java.util.*;
  */
 @Mod.EventBusSubscriber
 public final class PartRegistry {
-    static IForgeRegistry<ItemPart> registry;
-
+    private static IForgeRegistry<ItemPart> registry;
     private static final ResourceLocation REGISTRY_NAME = new ResourceLocation(SilentGear.MOD_ID, "parts");
-
     private static final Map<Integer, ItemPart> PARTS_BY_ID = new HashMap<>();
 
-    @Deprecated
-    private static Map<String, ItemPart> map = new LinkedHashMap<>();
-    private static List<PartMain> mains = null;
-    private static List<PartRod> rods = null;
-    private static List<PartMain> visibleMains = null;
-    private static List<PartRod> visibleRods = null;
-    private static Map<String, ItemPart> STACK_TO_PART = new HashMap<>();
-    @Getter
-    private static int highestMainPartTier = 0;
+    private static ImmutableList<PartMain> mains = null;
+    private static ImmutableList<PartRod> rods = null;
+    private static ImmutableList<PartMain> visibleMains = null;
+    private static ImmutableList<PartRod> visibleRods = null;
+    private static final Map<String, ItemPart> STACK_TO_PART = new HashMap<>();
+    @Getter private static int highestMainPartTier = 0;
 
     private PartRegistry() {
         throw new IllegalAccessError("Utility class");
@@ -51,7 +50,7 @@ public final class PartRegistry {
     @Deprecated
     @Nullable
     public static ItemPart get(String key) {
-        return map.get(key);
+        return get(new ResourceLocation(key));
     }
 
     /**
@@ -63,7 +62,7 @@ public final class PartRegistry {
     @Deprecated
     @Nullable
     public static ItemPart get(ResourceLocation key) {
-        return map.get(key.toString());
+        return registry.getValue(key);
     }
 
     /**
@@ -72,17 +71,16 @@ public final class PartRegistry {
      * @param stack {@link ItemStack} that may or may not be an {@link ItemPart}
      * @return The matching {@link ItemPart}, or null if there is none
      */
-    @Deprecated
     @Nullable
     public static ItemPart get(ItemStack stack) {
         if (stack.isEmpty())
             return null;
 
-        String key = stack.getItem().getTranslationKey() + "@" + stack.getItemDamage();
+        String key = stack.getItem().getRegistryName() + "@" + stack.getItemDamage();
         if (STACK_TO_PART.containsKey(key))
             return STACK_TO_PART.get(key);
 
-        for (ItemPart part : map.values()) {
+        for (ItemPart part : registry) {
             if (part.matchesForCrafting(stack, true)) {
                 STACK_TO_PART.put(key, part);
                 return part;
@@ -91,37 +89,13 @@ public final class PartRegistry {
         return null;
     }
 
-    /**
-     * Registers a gear part (material). A part with the same key must not be registered.
-     *
-     * @param part The {@link ItemPart}
-     */
-    @Deprecated
-    public static <T extends ItemPart> T putPart(@Nonnull T part) {
-        String key = part.getRegistryName().toString();
-        if (map.containsKey(key)) {
-            //throw new IllegalArgumentException("Already have a part with key " + key);
-        } else {
-            map.put(key, part);
-        }
-
-        if (part instanceof PartMain && part.getTier() > highestMainPartTier)
-            highestMainPartTier = part.getTier();
-
-        return part;
-    }
-
     @Nullable
-    public static ItemPart byId(int id) {
+    static ItemPart byId(int id) {
         return PARTS_BY_ID.get(id);
     }
 
-    public static Set<String> getKeySet() {
-        return map.keySet();
-    }
-
     public static Collection<ItemPart> getValues() {
-        return map.values();
+        return registry.getValuesCollection();
     }
 
     /**
@@ -178,8 +152,8 @@ public final class PartRegistry {
         visibleRods = null;
     }
 
-    public static void getDebugLines(List<String> list) {
-        list.add("PartRegistry.map=" + map.size());
+    public static void getDebugLines(Collection<String> list) {
+        list.add("PartRegistry.registry=" + registry.getValuesCollection().size());
         list.add("PartRegistry.STACK_TO_PART=" + STACK_TO_PART.size());
     }
 
@@ -189,17 +163,8 @@ public final class PartRegistry {
 
         RegistryBuilder<ItemPart> builder = new RegistryBuilder<>();
         builder.setType(ItemPart.class);
-        builder.add((IForgeRegistry.AddCallback<ItemPart>) (owner, stage, id, obj, oldObj) -> {
-            SilentGear.log.debug("PartRegistry AddCallback: {} {} {} {} {}", owner, stage, id, obj, oldObj);
-            obj.setId(id);
-            putPart(obj);
-            PARTS_BY_ID.put(id, obj);
-        });
-        builder.add((IForgeRegistry.ClearCallback<ItemPart>) (owner, stage) -> {
-            SilentGear.log.debug("PartRegistry ClearCallback: {} {}", owner, stage);
-            map.clear();
-            PARTS_BY_ID.clear();
-        });
+        builder.add(PartRegistry::onAddCallback);
+        builder.add((IForgeRegistry.ClearCallback<ItemPart>) PartRegistry::onClearCallback);
         builder.set(ItemPart.Dummy::dummyFactory);
         builder.set(ItemPart.Dummy::missingFactory);
         builder.allowModification();
@@ -210,5 +175,21 @@ public final class PartRegistry {
 
     public static void loadJsonResources() {
         registry.forEach(ItemPart::loadJsonResources);
+    }
+
+    private static void onAddCallback(IForgeRegistryInternal<ItemPart> owner, RegistryManager stage, int id, ItemPart obj, ItemPart oldObj) {
+        SilentGear.log.debug("PartRegistry AddCallback: {} {} {} {} {}", owner, stage, id, obj, oldObj);
+        obj.setId(id);
+        PARTS_BY_ID.put(id, obj);
+
+        if (obj instanceof PartMain && obj.getTier() > highestMainPartTier)
+            highestMainPartTier = obj.getTier();
+    }
+
+    private static void onClearCallback(IForgeRegistryInternal<ItemPart> owner, RegistryManager stage) {
+        SilentGear.log.debug("PartRegistry ClearCallback: {} {}", owner, stage);
+        PARTS_BY_ID.clear();
+
+        highestMainPartTier = -1;
     }
 }

@@ -320,6 +320,9 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
                     (this.userDefined ? " (user defined) " : " "));
     }
 
+    /**
+     * Used as a stand-in for parts that have been removed since world creation.
+     */
     public static final class Dummy extends ItemPart {
         private Dummy() {
             super(false);

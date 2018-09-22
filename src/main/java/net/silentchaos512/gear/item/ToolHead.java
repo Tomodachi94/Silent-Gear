@@ -74,7 +74,6 @@ public class ToolHead extends Item implements IStatItem {
      * Create a stack with a single part. Best for sub-items.
      */
     public ItemStack getStack(String toolClass, PartMain part, boolean isExample) {
-        boolean hasGuard = "sword".equals(toolClass);
 
         ItemStack result = new ItemStack(this);
         NBTTagCompound tags = getData(result);
@@ -85,7 +84,7 @@ public class ToolHead extends Item implements IStatItem {
         NBTTagCompound partTags = new NBTTagCompound();
         part.writeToNBT(partTags);
         tagList.appendTag(partTags);
-        if (hasGuard)
+        if ("sword".equals(toolClass))
             tagList.appendTag(partTags);
         tags.setTag(NBT_MATERIALS, tagList);
 
@@ -94,7 +93,7 @@ public class ToolHead extends Item implements IStatItem {
         return result;
     }
 
-    private void writeStatCache(ItemStack stack, PartDataList parts) {
+    private static void writeStatCache(ItemStack stack, PartDataList parts) {
         ICoreItem item = ModItems.toolClasses.get(getToolClass(stack));
         double synergy = GearData.calculateSynergyValue(parts, parts.getUniqueParts(true));
         Multimap<ItemStat, StatInstance> stats = GearData.getStatModifiers(item, parts, synergy);
@@ -112,7 +111,7 @@ public class ToolHead extends Item implements IStatItem {
      * Get the gear class this item matches.
      */
     @Nonnull
-    public String getToolClass(ItemStack stack) {
+    public static String getToolClass(ItemStack stack) {
         return getData(stack).getString(NBT_TOOL_CLASS);
     }
 
@@ -120,24 +119,28 @@ public class ToolHead extends Item implements IStatItem {
      * Get the primary (first) part the gear head was constructed with.
      */
     @Nullable
-    public ItemPartData getPrimaryPart(ItemStack stack) {
+    public static ItemPartData getPrimaryPart(ItemStack stack) {
         NBTTagCompound tags = getData(stack);
         if (!tags.hasKey(NBT_MATERIALS))
+            //noinspection ConstantConditions
             return ItemPartData.instance(ModMaterials.mainWood);
         NBTTagList tagList = tags.getTagList(NBT_MATERIALS, 10);
         if (tagList.tagCount() == 0)
+            //noinspection ConstantConditions
             return ItemPartData.instance(ModMaterials.mainWood);
         NBTTagCompound partTags = tagList.getCompoundTagAt(0);
         return ItemPartData.readFromNBT(partTags);
     }
 
     @Nullable
-    public ItemPartData getSecondaryPart(ItemStack stack) {
+    public static ItemPartData getSecondaryPart(ItemStack stack) {
         NBTTagCompound tags = getData(stack);
         if (!tags.hasKey(NBT_MATERIALS))
+            //noinspection ConstantConditions
             return ItemPartData.instance(ModMaterials.mainWood);
         NBTTagList tagList = tags.getTagList(NBT_MATERIALS, 10);
         if (tagList.tagCount() < 2)
+            //noinspection ConstantConditions
             return ItemPartData.instance(ModMaterials.mainWood);
         NBTTagCompound partTags = tagList.getCompoundTagAt(1);
         return ItemPartData.readFromNBT(partTags);
@@ -147,7 +150,7 @@ public class ToolHead extends Item implements IStatItem {
      * Get all parts the gear head was constructed with.
      */
     @Nonnull
-    public Collection<ItemPartData> getAllParts(ItemStack stack) {
+    public static Collection<ItemPartData> getAllParts(ItemStack stack) {
         ImmutableList.Builder<ItemPartData> builder = ImmutableList.builder();
         NBTTagCompound tags = getData(stack);
         if (tags.hasKey(NBT_MATERIALS)) {
@@ -164,8 +167,9 @@ public class ToolHead extends Item implements IStatItem {
      * Convenience method for getting NBT compound.
      */
     @Nonnull
-    private NBTTagCompound getData(ItemStack stack) {
+    private static NBTTagCompound getData(ItemStack stack) {
         NBTTagCompound tags = StackHelper.getTagCompound(stack, true);
+        assert tags != null;
         if (!tags.hasKey(NBT_ROOT))
             tags.setTag(NBT_ROOT, new NBTTagCompound());
         return tags.getCompoundTag(NBT_ROOT);
@@ -180,7 +184,7 @@ public class ToolHead extends Item implements IStatItem {
         return super.getItemStackDisplayName(stack);
     }
 
-    public String getModelKey(ItemStack stack) {
+    public static String getModelKey(ItemStack stack) {
         ICoreTool toolItem = ModItems.toolClasses.get(getToolClass(stack));
         String toolClass = getToolClass(stack);
         ItemPartData primary = getPrimaryPart(stack);
@@ -188,13 +192,14 @@ public class ToolHead extends Item implements IStatItem {
         return getModelKey(toolClass, primary, secondary);
     }
 
-    public String getModelKey(String toolClass, ItemPartData primary, ItemPartData secondary) {
-        return toolClass + "_head|" + (primary == null ? "null" : primary.getModelIndex(0))
-                + (secondary == null ? "" : "|" + secondary.getModelIndex(0));
+    public static String getModelKey(String toolClass, @Nullable ItemPartData primary, @Nullable ItemPartData secondary) {
+        return toolClass + "_head|"
+                + (primary != null ? primary.getModelIndex(0) : "null")
+                + (secondary != null ? "|" + secondary.getModelIndex(0) : "");
     }
 
     @Override
-    public void addInformation(ItemStack stack, World world, List<String> list, ITooltipFlag flag) {
+    public void addInformation(ItemStack stack, @Nullable World world, List<String> list, ITooltipFlag flag) {
         I18nHelper i18n = SilentGear.i18n;
         String toolClass = getToolClass(stack);
 
@@ -235,6 +240,7 @@ public class ToolHead extends Item implements IStatItem {
     public Collection<IRecipe> getExampleRecipes() {
         Collection<IRecipe> list = new ArrayList<>();
 
+        //noinspection OverlyLongLambda
         ModItems.toolClasses.forEach((toolClass, item) -> {
             Ingredient blueprint = Blueprint.getBlueprintIngredientForGear(item);
             if (blueprint != null) {
@@ -265,7 +271,7 @@ public class ToolHead extends Item implements IStatItem {
         return tags.getFloat(stat.getName().getPath());
     }
 
-    public String getSubtypeKey(ItemStack stack) {
+    public static String getSubtypeKey(ItemStack stack) {
         ItemPartData part = getPrimaryPart(stack);
         return getToolClass(stack) + (part != null ? "|" + part.getModelIndex(0) : "|empty");
     }

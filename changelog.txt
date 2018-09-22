@@ -1,3 +1,6 @@
+0.2.0
+Switched gear part registry to a Forge registry. Shouldn't have any affect on how things work right now, but watch out for anything unusual.
+
 0.1.3
 Added: Configs to change repair multiplier for quick and anvil repairs
 Added: Quark runes can now control the effect color of gear

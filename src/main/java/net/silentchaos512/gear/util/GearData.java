@@ -112,7 +112,11 @@ public final class GearData {
         }
     }
 
-    private static boolean containsDummyParts(Iterable<ItemPartData> parts) {
+    public static boolean hasLockedStats(ItemStack stack) {
+        return getData(stack, NBT_ROOT_PROPERTIES).getBoolean(NBT_LOCK_STATS);
+    }
+
+    public static boolean containsDummyParts(Iterable<ItemPartData> parts) {
         for (ItemPartData part : parts)
             if (part.getPart() instanceof ItemPart.Dummy)
                 return true;

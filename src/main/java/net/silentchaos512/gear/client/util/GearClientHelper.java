@@ -10,7 +10,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.silentchaos512.gear.SilentGear;
 import net.silentchaos512.gear.api.item.ICoreItem;
-import net.silentchaos512.gear.api.item.ICoreTool;
 import net.silentchaos512.gear.api.parts.ItemPartData;
 import net.silentchaos512.gear.api.parts.PartDataList;
 import net.silentchaos512.gear.api.parts.PartMain;
@@ -25,8 +24,10 @@ import net.silentchaos512.lib.util.StackHelper;
 import java.util.*;
 
 @SideOnly(Side.CLIENT)
-public class GearClientHelper {
-    public static Map<String, IBakedModel> modelCache = new HashMap<>();
+public final class GearClientHelper {
+    public static final Map<String, IBakedModel> modelCache = new HashMap<>();
+
+    private GearClientHelper() {}
 
     public static void addInformation(ItemStack stack, World world, List<String> tooltip, ITooltipFlag flag) {
         TooltipFlagTC flagTC = flag instanceof TooltipFlagTC ? (TooltipFlagTC) flag
@@ -50,8 +51,16 @@ public class GearClientHelper {
                 tooltip.add(2, TextFormatting.YELLOW + SilentGear.i18n.translate("misc", "exampleOutput2"));
             }
 
-            // Let parts add information if they need to
             PartDataList constructionParts = GearData.getConstructionParts(stack);
+
+            if (GearData.containsDummyParts(constructionParts)) {
+                tooltip.add(TextFormatting.RED + SilentGear.i18n.translate("misc", "dummyParts"));
+                tooltip.add(TextFormatting.RED + SilentGear.i18n.translate("misc", "lockedStats"));
+            } else if (GearData.hasLockedStats(stack)) {
+                tooltip.add(TextFormatting.YELLOW + SilentGear.i18n.translate("misc", "lockedStats"));
+            }
+
+            // Let parts add information if they need to
             Collections.reverse(constructionParts);
             for (ItemPartData data : constructionParts) {
                 data.getPart().addInformation(data, stack, world, tooltip, flag.isAdvanced());
@@ -127,6 +136,7 @@ public class GearClientHelper {
         }
     }
 
+    @SuppressWarnings("TypeMayBeWeakened")
     public static void tooltipListParts(ItemStack gear, List<String> tooltip, Collection<ItemPartData> parts) {
         for (ItemPartData part : parts) {
             String str = "- " + part.getNameColor() + part.getTranslatedName(gear);
@@ -140,34 +150,7 @@ public class GearClientHelper {
         return stack.isItemEnchanted();
     }
 
-    public static boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+    public static boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, @SuppressWarnings("unused") boolean slotChanged) {
         return !oldStack.equals(newStack);
-    }
-
-    public static Map<String, ItemPartData> getRenderParts(ItemStack stack) {
-        Map<String, ItemPartData> map = new LinkedHashMap<>();
-
-        ICoreTool item = (ICoreTool) stack.getItem();
-        String itemClass = item.getGearClass();
-        boolean hasGuard = "sword".equals(itemClass);
-
-        ItemPartData partHead = item.getPrimaryPart(stack);
-        ItemPartData partGuard = hasGuard ? item.getSecondaryPart(stack) : null;
-        ItemPartData partRod = item.getRodPart(stack);
-        ItemPartData partTip = item.getTipPart(stack);
-        ItemPartData partBowstring = item.getBowstringPart(stack);
-
-        if (partRod != null)
-            map.put("rod", partRod);
-        if (partHead != null)
-            map.put("head", partHead);
-        if (partGuard != null)
-            map.put("guard", partGuard);
-        if (partTip != null)
-            map.put("tip", partTip);
-        if (partBowstring != null)
-            map.put("bowstring", partBowstring);
-
-        return map;
     }
 }

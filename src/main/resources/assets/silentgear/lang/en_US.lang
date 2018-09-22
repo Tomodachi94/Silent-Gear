@@ -329,6 +329,8 @@ misc.silentgear.tooltip.altForConstruction=Construction §8<Press Alt>
 misc.silentgear.tooltip.ctrlForStats=Stats §8<Press Ctrl>
 
 misc.silentgear.broken=You broke it!
+misc.silentgear.dummyParts=Contains invalid/removed parts
 misc.silentgear.exampleOutput1=Example output (modular recipe)
 misc.silentgear.exampleOutput2=If you crafted this, something went wrong!
+misc.silentgear.lockedStats=Stats are locked
 misc.silentgear.poorlyMade=This item is poorly made and will not last long

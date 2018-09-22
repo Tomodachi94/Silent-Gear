@@ -25,6 +25,7 @@ import net.silentchaos512.gear.init.ModItems;
 import net.silentchaos512.gear.init.ModMaterials;
 import net.silentchaos512.gear.item.MiscUpgrades;
 import net.silentchaos512.gear.item.TipUpgrades;
+import net.silentchaos512.gear.item.ToolHead;
 import net.silentchaos512.gear.item.ToolRods;
 import net.silentchaos512.gear.item.gear.CoreArmor;
 import net.silentchaos512.gear.util.GearData;
@@ -46,7 +47,7 @@ public class JeiPlugin implements IModPlugin {
     @Override
     public void registerItemSubtypes(ISubtypeRegistry subtypeRegistry) {
         initFailed = true;
-        subtypeRegistry.registerSubtypeInterpreter(ModItems.toolHead, s -> ModItems.toolHead.getSubtypeKey(s));
+        subtypeRegistry.registerSubtypeInterpreter(ModItems.toolHead, ToolHead::getSubtypeKey);
 
 //        ModItems.gearClasses.forEach(
 //                (key, item) -> subtypeRegistry.registerSubtypeInterpreter(item.getItem(),
@@ -122,17 +123,19 @@ public class JeiPlugin implements IModPlugin {
         initFailed = false;
     }
 
-    private Map<ResourceLocation, ItemStack> sampleStacks = new HashMap<>();
+    private final Map<ResourceLocation, ItemStack> sampleStacks = new HashMap<>();
 
     private ItemStack getSampleStack(ICoreItem gearItem) {
         ResourceLocation name = gearItem.getItem().getRegistryName();
         if (!sampleStacks.containsKey(name)) {
             PartDataList parts = PartDataList.of();
             for (int i = 0; i < gearItem.getConfig().getHeadCount(); ++i)
+                //noinspection ConstantConditions
                 parts.addPart(ModMaterials.mainIron);
             if (gearItem.getConfig().getRodCount() > 0)
                 parts.addPart(ToolRods.WOOD.getPart());
             if (gearItem.getConfig().getBowstringCount() > 0)
+                //noinspection ConstantConditions
                 parts.addPart(ModMaterials.bowstringString);
 
             ItemStack stack = gearItem.construct(gearItem.getItem(), parts);
@@ -147,7 +150,7 @@ public class JeiPlugin implements IModPlugin {
         return sampleStacks.get(name);
     }
 
-    private void addIngredientInfoPages(IModRegistry registry, Collection<? extends IForgeRegistryEntry<?>> list) {
+    private static void addIngredientInfoPages(IModRegistry registry, Collection<? extends IForgeRegistryEntry<?>> list) {
         for (IForgeRegistryEntry<?> obj : list) {
             String key = getDescKey(Objects.requireNonNull(obj.getRegistryName()));
 //            SilentGear.log.debug("JEI info page {}: {}", key, SilentGear.i18n.hasKey(key));
@@ -156,11 +159,11 @@ public class JeiPlugin implements IModPlugin {
         }
     }
 
-    private String getDescKey(String name) {
+    private static String getDescKey(String name) {
         return "jei." + SilentGear.MOD_ID + "." + name + ".desc";
     }
 
-    private String getDescKey(ResourceLocation name) {
+    private static String getDescKey(ResourceLocation name) {
         return "jei." + name.getNamespace() + "." + name.getPath() + ".desc";
     }
 }
