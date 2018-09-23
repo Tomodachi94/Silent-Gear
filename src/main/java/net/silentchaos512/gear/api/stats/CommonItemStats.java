@@ -10,7 +10,7 @@ import net.silentchaos512.gear.SilentGear;
  * @author SilentChaos512
  * @since Experimental
  */
-public class CommonItemStats {
+public final class CommonItemStats {
     // Generic
     public static final ItemStat DURABILITY = new ItemStat(new ResourceLocation(SilentGear.MOD_ID, "durability"),
             0f, 0f, 32767f, true, TextFormatting.BLUE)
@@ -84,6 +84,8 @@ public class CommonItemStats {
             0f, 0f, 40f, false, TextFormatting.LIGHT_PURPLE)
             .setAffectedByGrades(true)
             .setSynergyApplies(true);
+
+    private CommonItemStats() {}
 
     public static void init() {
         // NO-OP

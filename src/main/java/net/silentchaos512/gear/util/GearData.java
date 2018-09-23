@@ -116,6 +116,10 @@ public final class GearData {
         return getData(stack, NBT_ROOT_PROPERTIES).getBoolean(NBT_LOCK_STATS);
     }
 
+    public static void setLockedStats(ItemStack stack, boolean value) {
+        getData(stack, NBT_ROOT_PROPERTIES).setBoolean(NBT_LOCK_STATS, value);
+    }
+
     public static boolean containsDummyParts(Iterable<ItemPartData> parts) {
         for (ItemPartData part : parts)
             if (part.getPart() instanceof ItemPart.Dummy)

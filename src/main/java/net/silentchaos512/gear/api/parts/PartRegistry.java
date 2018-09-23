@@ -178,7 +178,7 @@ public final class PartRegistry {
     }
 
     private static void onAddCallback(IForgeRegistryInternal<ItemPart> owner, RegistryManager stage, int id, ItemPart obj, ItemPart oldObj) {
-        SilentGear.log.debug("PartRegistry AddCallback: {} {} {} {} {}", owner, stage, id, obj, oldObj);
+//        SilentGear.log.debug("PartRegistry AddCallback: {} {} {} {} {}", owner, stage, id, obj, oldObj);
         obj.setId(id);
         PARTS_BY_ID.put(id, obj);
 
@@ -187,7 +187,7 @@ public final class PartRegistry {
     }
 
     private static void onClearCallback(IForgeRegistryInternal<ItemPart> owner, RegistryManager stage) {
-        SilentGear.log.debug("PartRegistry ClearCallback: {} {}", owner, stage);
+//        SilentGear.log.debug("PartRegistry ClearCallback: {} {}", owner, stage);
         PARTS_BY_ID.clear();
 
         highestMainPartTier = -1;

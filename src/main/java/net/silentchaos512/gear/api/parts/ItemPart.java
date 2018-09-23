@@ -247,7 +247,7 @@ public abstract class ItemPart extends IForgeRegistryEntry.Impl<ItemPart> {
 
     @Override
     public String toString() {
-        String str = this.getClass().getName() + "[" + this.getDebugSymbol() + "]{";
+        String str = this.getClass().getName() + "[" + this.getDebugSymbol() + this.id + "]{";
         str += this.origin + ", ";
         str += "Key: " + this.getRegistryName() + ", ";
         str += "CraftingStack: " + this.craftingStack.get() + ", ";
